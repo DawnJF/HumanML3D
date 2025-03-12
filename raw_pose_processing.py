@@ -12,7 +12,7 @@ os.environ["PYOPENGL_PLATFORM"] = "egl"
 
 
 # Choose the device to run the body model on.
-comp_device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+comp_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 from human_body_prior.body_model.body_model import BodyModel
@@ -45,7 +45,8 @@ female_bm = BodyModel(
 paths = []
 folders = []
 dataset_names = []
-for root, dirs, files in os.walk("./amass_data"):
+amass_folder = "/liujinxin/dataset/amass_data"
+for root, dirs, files in os.walk(amass_folder):
     #     print(root, dirs, files)
     #     for folder in dirs:
     #         folders.append(os.path.join(root, folder))
@@ -53,14 +54,14 @@ for root, dirs, files in os.walk("./amass_data"):
     for name in files:
         if name[-4:] != ".npz":
             continue
-        dataset_name = root.split("/")[2]
+        dataset_name = root.split(amass_folder)[1].split("/")[1]
         if dataset_name not in dataset_names:
             dataset_names.append(dataset_name)
         paths.append(os.path.join(root, name))
 
 
 save_root = "./pose_data"
-save_folders = [folder.replace("./amass_data", "./pose_data") for folder in folders]
+save_folders = [folder.replace(amass_folder, "./pose_data") for folder in folders]
 for folder in save_folders:
     os.makedirs(folder, exist_ok=True)
 group_path = [[path for path in paths if name in path] for name in dataset_names]
@@ -121,12 +122,12 @@ cur_count = 0
 import time
 
 for paths in group_path:
-    dataset_name = paths[0].split("/")[2]
+    dataset_name = paths[0].split(amass_folder)[1].split("/")[1]
     pbar = tqdm(paths)
     pbar.set_description("Processing: %s" % dataset_name)
     fps = 0
     for path in pbar:
-        save_path = path.replace("./amass_data", "./pose_data")
+        save_path = path.replace(amass_folder, "./pose_data")
         save_path = save_path[:-3] + "npy"
         fps = amass_to_pose(path, save_path)
 
@@ -175,7 +176,6 @@ for i in tqdm(range(total_amount)):
     new_name = index_file.loc[i]["new_name"]
     if "CMU/01" in source_path:
         print(source_path)
-
 
     if not os.path.exists(source_path):
         continue
