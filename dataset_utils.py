@@ -35,13 +35,12 @@ t2m_raw_offsets = np.array(
 
 
 class MotionPreprocess:
-    def __init__(self, data_dir):
+    def __init__(self, data_dir="/liujinxin/code/HumanML3D/joints"):
         self.kinematic_chain = t2m_kinematic_chain
-        self.face_joint_indx = face_joint_indx
         self.n_raw_offsets = torch.from_numpy(t2m_raw_offsets)
         self.l_idx1 = 5
         self.l_idx2 = 8
-        face_joint_indx = [2, 1, 17, 16]
+        self.face_joint_indx = [2, 1, 17, 16]
 
         example_id = "000021"
         example_data = np.load(os.path.join(data_dir, example_id + ".npy"))
@@ -127,3 +126,12 @@ class MotionPreprocess:
         root_quat_init = np.ones(positions.shape[:-1] + (4,)) * root_quat_init
 
         return positions
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, "/liujinxin/code/HumanML3D")
+    from dataset_utils import MotionPreprocess
+
+    processor = MotionPreprocess()
+    processor.process_file()
