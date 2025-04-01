@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 
-from common.quaternion import qbetween_np
+from common.quaternion import qbetween_np, qrot_np
 from common.skeleton import Skeleton
 from paramUtil import *
 
@@ -82,6 +82,9 @@ class MotionPreprocess:
         return new_joints
 
     def process_file(self, positions, feet_thre=0.002):
+        # support 22 joints
+        assert positions.shape[1] == 22
+
         # (seq_len, joints_num, 3)
         #     '''Down Sample'''
         #     positions = positions[::ds_num]
@@ -125,13 +128,51 @@ class MotionPreprocess:
         root_quat_init = qbetween_np(forward_init, target)
         root_quat_init = np.ones(positions.shape[:-1] + (4,)) * root_quat_init
 
+        positions = qrot_np(root_quat_init, positions)
+
         return positions
+
+
+def swap(motion):
+    m = motion.copy()
+    m[:, 13] = motion[:, 14]
+    m[:, 14] = motion[:, 13]
+
+    m[:, 16] = motion[:, 17]
+    m[:, 17] = motion[:, 16]
+
+    m[:, 18] = motion[:, 19]
+    m[:, 19] = motion[:, 18]
+
+    m[:, 20] = motion[:, 21]
+    m[:, 21] = motion[:, 20]
+
+    m[:, 1] = motion[:, 2]
+    m[:, 2] = motion[:, 1]
+
+    m[:, 4] = motion[:, 5]
+    m[:, 5] = motion[:, 4]
+
+    m[:, 7] = motion[:, 8]
+    m[:, 8] = motion[:, 7]
+
+    m[:, 10] = motion[:, 11]
+    m[:, 11] = motion[:, 10]
+    return m
 
 
 if __name__ == "__main__":
     import sys
+
     sys.path.insert(0, "/liujinxin/code/HumanML3D")
     from dataset_utils import MotionPreprocess
 
     processor = MotionPreprocess()
-    processor.process_file()
+
+    file = "/liujinxin/code/Hu_mjf/dataset/vision_motion24/avoid_10.npy"
+    motion = np.load(file)
+    motion = motion[:, :22]
+    # motion = swap(motion)
+    result = processor.process_file(motion)
+    np.save("/liujinxin/code/Hu_mjf/output/avoid_10.npy", result)
+    print(result.shape)
