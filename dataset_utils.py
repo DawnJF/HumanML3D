@@ -85,6 +85,11 @@ class MotionPreprocess:
         # support 22 joints
         assert positions.shape[1] == 22
 
+        if check_left_right(positions):
+            print("!!! left and right are swapped, swap them")
+            positions = swap(positions)
+            check_left_right(positions)
+
         # (seq_len, joints_num, 3)
         #     '''Down Sample'''
         #     positions = positions[::ds_num]
@@ -133,6 +138,29 @@ class MotionPreprocess:
         return positions
 
 
+def check_left_right(motion):
+    root_pos_init = motion[0]
+    r_hip, l_hip, sdr_r, sdr_l = [2, 1, 17, 16]
+    across1 = root_pos_init[r_hip] - root_pos_init[l_hip]
+    across2 = root_pos_init[sdr_r] - root_pos_init[sdr_l]
+    across = across1 + across2
+    across = across / np.sqrt((across**2).sum(axis=-1))[..., np.newaxis]
+
+    # forward (3,), rotate around y-axis
+    forward_init = np.cross(np.array([[0, 1, 0]]), across, axis=-1)
+
+    toe_across1 = root_pos_init[10] - root_pos_init[7]
+    toe_across2 = root_pos_init[11] - root_pos_init[8]
+    toe_across = toe_across1 + toe_across2
+    toe_across = toe_across / np.sqrt((toe_across**2).sum(axis=-1))[..., np.newaxis]
+
+    # check 两个向量是不是在一个方向上
+    print(np.dot(forward_init[0], toe_across))
+    if np.dot(forward_init[0], toe_across) < 0:
+        return True
+    return False
+
+
 def swap(motion):
     m = motion.copy()
     m[:, 13] = motion[:, 14]
@@ -169,10 +197,15 @@ if __name__ == "__main__":
 
     processor = MotionPreprocess()
 
-    file = "/liujinxin/code/Hu_mjf/dataset/vision_motion24/avoid_10.npy"
+    file = "/liujinxin/dataset/BABEL/motion/KIT_348_walking_run07_poses.npz.npy"
+    # file = "/liujinxin/dataset/BABEL/motion/EKUT_234_MTR03_poses.npz.npy"
+    # file = "/ssdwork/liujinxin/DATASET/Hu/HumanML3D/new_joints/012323.npy"
     motion = np.load(file)
     motion = motion[:, :22]
-    # motion = swap(motion)
+
     result = processor.process_file(motion)
-    np.save("/liujinxin/code/Hu_mjf/output/avoid_10.npy", result)
+    np.save(
+        "/liujinxin/code/Hu_mjf/output/KIT_348_walking_run07_poses.npz.npy_p.npy",
+        result,
+    )
     print(result.shape)
